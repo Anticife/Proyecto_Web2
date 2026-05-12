@@ -19,10 +19,12 @@ const PropertyList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
+
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const response = await axios.get('http://localhost:1337/api/properties?populate=*');
+        const response = await axios.get(`${API_URL}/api/properties?populate=*`);
         
         // Transform Strapi data to our local Property interface
         const transformedData = response.data.data.map((item: any) => {
@@ -36,7 +38,7 @@ const PropertyList: React.FC = () => {
             isFeatured: attrs.isFeatured,
             category: attrs.category?.data?.attributes?.name || 'Uncategorized',
             image: attrs.images?.data?.[0]?.attributes?.url 
-              ? `http://localhost:1337${attrs.images.data[0].attributes.url}`
+              ? `${API_URL}${attrs.images.data[0].attributes.url}`
               : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800'
           };
         });
