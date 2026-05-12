@@ -2,8 +2,8 @@ import api from './axios';
 
 export const propertiesAPI = {
   // Público
-  getAll: async () => {
-    const response = await api.get('/properties?populate=*');
+  getAll: async (params?: string) => {
+    const response = await api.get(`/properties?populate=*${params ? `&${params}` : ''}`);
     return response.data;
   },
 

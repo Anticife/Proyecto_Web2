@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { authAPI } from '../api';
 import { UserPlus, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import './Auth.css';
 
@@ -12,23 +12,17 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      const response = await axios.post(`${API_URL}/api/auth/local/register`, {
-        username,
-        email,
-        password,
-      });
+      const response = await authAPI.register(username, email, password);
 
       // Store JWT and User Info
-      localStorage.setItem('jwt', response.data.jwt);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('jwt', response.jwt);
+      localStorage.setItem('user', JSON.stringify(response.user));
 
       // Redirect to dashboard
       navigate('/dashboard');

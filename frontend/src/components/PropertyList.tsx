@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { propertiesAPI } from '../api';
 import PropertyCard from './PropertyCard';
 import './PropertyList.css';
 
@@ -14,34 +14,35 @@ interface Property {
   category: string;
 }
 
+// Función de transformación estándar según frontend_guidelines.md
+export function transformProperty(item: any) {
+  const attrs = item.attributes;
+  const imageUrl = attrs.images?.data?.[0]?.attributes?.url;
+  return {
+    id: item.id,
+    title: attrs.title,
+    price: attrs.price,
+    location: attrs.location || 'Sin ubicación',
+    area: attrs.area || 0,
+    isFeatured: attrs.isFeatured || false,
+    category: attrs.category?.data?.attributes?.name || 'Sin categoría',
+    // ⚠️ Cloudinary devuelve URL ABSOLUTA — NO prefixar con API_URL
+    image: imageUrl || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800',
+  };
+}
+
 const PropertyList: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
-
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const response = await axios.get(`${API_URL}/api/properties?populate=*`);
+        const response = await propertiesAPI.getAll();
         
-        // Transform Strapi data to our local Property interface
-        const transformedData = response.data.data.map((item: any) => {
-          const attrs = item.attributes;
-          return {
-            id: item.id,
-            title: attrs.title,
-            price: attrs.price,
-            location: attrs.location,
-            area: attrs.area,
-            isFeatured: attrs.isFeatured,
-            category: attrs.category?.data?.attributes?.name || 'Uncategorized',
-            image: attrs.images?.data?.[0]?.attributes?.url 
-              ? `${API_URL}${attrs.images.data[0].attributes.url}`
-              : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800'
-          };
-        });
+        // Transform Strapi data using the standard function
+        const transformedData = response.data.map(transformProperty);
 
         // Sort: Featured first
         const sorted = transformedData.sort((a: Property, b: Property) => 
@@ -52,7 +53,7 @@ const PropertyList: React.FC = () => {
       } catch (err) {
         console.error('Error fetching properties:', err);
         setError('Failed to load properties. Showing mock data instead.');
-        // Fallback to mock data if API fails (useful for dev)
+        // Fallback to mock data if API fails
         setProperties([
           {
             id: 1,

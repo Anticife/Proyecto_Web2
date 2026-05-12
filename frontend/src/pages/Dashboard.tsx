@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { propertiesAPI, paymentsAPI } from '../api';
 import PropertyCard from '../components/PropertyCard';
-import { Plus, LayoutDashboard, LogOut } from 'lucide-react';
+import PropertyModal from '../components/PropertyModal';
+import { transformProperty } from '../components/PropertyList';
+import { Plus, LayoutDashboard, LogOut, CheckCircle } from 'lucide-react';
 
 interface Property {
   id: number;
@@ -13,66 +15,45 @@ interface Property {
   isFeatured: boolean;
   image: string;
   category: string;
+  categoryId?: number;
 }
 
 const Dashboard: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<Property | undefined>(undefined);
+  const [showSuccess, setShowSuccess] = useState(false);
+  
   const navigate = useNavigate();
-
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
   const jwt = localStorage.getItem('jwt');
 
   useEffect(() => {
-    if (!jwt) {
-      navigate('/login');
-      return;
-    }
+    if (!jwt) return;
 
     const userData = localStorage.getItem('user');
     if (userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      fetchMyProperties(parsedUser.id);
     }
+  }, [jwt]);
 
-    const fetchMyProperties = async () => {
-      try {
-        const userParsed = JSON.parse(userData || '{}');
-        const response = await axios.get(
-          `${API_URL}/api/properties?filters[owner][id][$eq]=${userParsed.id}&populate=*`,
-          {
-            headers: {
-              Authorization: `Bearer ${jwt}`,
-            },
-          }
-        );
-
-        const transformedData = response.data.data.map((item: any) => {
-          const attrs = item.attributes;
-          return {
-            id: item.id,
-            title: attrs.title,
-            price: attrs.price,
-            location: attrs.location,
-            area: attrs.area,
-            isFeatured: attrs.isFeatured,
-            category: attrs.category?.data?.attributes?.name || 'Uncategorized',
-            image: attrs.images?.data?.[0]?.attributes?.url 
-              ? `${API_URL}${attrs.images.data[0].attributes.url}`
-              : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800'
-          };
-        });
-
-        setProperties(transformedData);
-      } catch (err) {
-        console.error('Error fetching my properties:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMyProperties();
-  }, [jwt, navigate, API_URL]);
+  const fetchMyProperties = async (userId: number) => {
+    try {
+      const response = await propertiesAPI.getMyProperties(userId);
+      const transformedData = response.data.map((item: any) => ({
+        ...transformProperty(item),
+        categoryId: item.attributes.category?.data?.id
+      }));
+      setProperties(transformedData);
+    } catch (err) {
+      console.error('Error fetching my properties:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('jwt');
@@ -81,10 +62,43 @@ const Dashboard: React.FC = () => {
     window.location.reload();
   };
 
+  const handlePromote = async (propertyId: number) => {
+    try {
+      const result = await paymentsAPI.createPreference(propertyId);
+      window.location.href = result.init_point;
+    } catch (err) {
+      console.error('Error creating payment preference:', err);
+      alert('Failed to initiate payment. Please try again.');
+    }
+  };
+
+  const openCreateModal = () => {
+    setSelectedProperty(undefined);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (property: Property) => {
+    setSelectedProperty(property);
+    setIsModalOpen(true);
+  };
+
+  const handleModalSuccess = () => {
+    if (user) fetchMyProperties(user.id);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+
   if (!jwt) return null;
 
   return (
     <div className="container" style={{ padding: '40px 20px' }}>
+      {showSuccess && (
+        <div className="success-toast glass">
+          <CheckCircle size={20} color="#10b981" />
+          <span>Property saved successfully!</span>
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
@@ -95,7 +109,7 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button onClick={openCreateModal} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Plus size={20} /> Create Property
           </button>
           <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444' }}>
@@ -115,9 +129,21 @@ const Dashboard: React.FC = () => {
                 <div key={property.id} style={{ position: 'relative' }}>
                   <PropertyCard property={property} />
                   <div style={{ position: 'absolute', bottom: '10px', right: '10px', display: 'flex', gap: '5px' }}>
-                    <button className="glass" style={{ padding: '5px 10px', fontSize: '0.8rem', color: 'var(--primary)' }}>Edit</button>
+                    <button 
+                      onClick={() => openEditModal(property)}
+                      className="glass" 
+                      style={{ padding: '5px 10px', fontSize: '0.8rem', color: 'var(--primary)' }}
+                    >
+                      Edit
+                    </button>
                     {!property.isFeatured && (
-                      <button className="glass" style={{ padding: '5px 10px', fontSize: '0.8rem', background: 'var(--primary)', color: 'white' }}>Promote</button>
+                      <button 
+                        onClick={() => handlePromote(property.id)}
+                        className="glass" 
+                        style={{ padding: '5px 10px', fontSize: '0.8rem', background: 'var(--primary)', color: 'white' }}
+                      >
+                        Promote
+                      </button>
                     )}
                   </div>
                 </div>
@@ -126,11 +152,37 @@ const Dashboard: React.FC = () => {
           ) : (
             <div className="glass" style={{ padding: '60px', textAlign: 'center', borderRadius: '16px' }}>
               <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>You haven't listed any properties yet.</p>
-              <button style={{ marginTop: '20px' }}>List Your First Property</button>
+              <button onClick={openCreateModal} style={{ marginTop: '20px' }}>List Your First Property</button>
             </div>
           )}
         </section>
       </div>
+
+      <PropertyModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSuccess={handleModalSuccess}
+        property={selectedProperty}
+      />
+
+      <style>{`
+        .success-toast {
+          position: fixed;
+          top: 100px;
+          right: 2rem;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 1rem 1.5rem;
+          border-radius: 12px;
+          z-index: 3000;
+          animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 };
