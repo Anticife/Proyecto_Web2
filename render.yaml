@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: proyecto-web1-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    rootDir: frontend
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_MERCADOPAGO_PUBLIC_KEY
+        sync: false
