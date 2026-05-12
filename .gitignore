@@ -1,0 +1,7 @@
+.gemini
+node_modules
+.agent
+.node_modules
+.env
+.env.*
+!.env.example
