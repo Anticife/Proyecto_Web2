@@ -100,7 +100,7 @@ const Login: React.FC = () => {
           <button type="submit" className="btn-auth" disabled={loading}>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                <div className="loading-spinner" style={{ width: '20px', height: '20px', borderWeight: '3px', margin: 0 }}></div>
+                <div className="loading-spinner" style={{ width: '20px', height: '20px', borderWidth: '3px', margin: 0 }}></div>
                 <span>Logging in...</span>
               </div>
             ) : 'Sign In'}
