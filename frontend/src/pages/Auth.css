@@ -89,9 +89,14 @@
   border-radius: 10px;
   border: 1px solid var(--glass-border);
   background: white;
+  color: #1a1a1a; /* Explicit dark color for visibility */
   font-family: inherit;
   font-size: 1rem;
   transition: all 0.2s;
+}
+
+.input-wrapper input::placeholder {
+  color: #999;
 }
 
 .input-wrapper input:focus {

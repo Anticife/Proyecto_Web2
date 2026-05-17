@@ -1,13 +1,14 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
 
-if (!API_URL) {
-  console.warn('VITE_API_URL is not defined in environment variables');
+if (import.meta.env.DEV && !import.meta.env.VITE_API_URL) {
+  console.warn('VITE_API_URL is not defined, falling back to localhost:1337');
 }
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
+  timeout: 30000, // 30 seconds timeout
   headers: {
     'Content-Type': 'application/json',
   },

@@ -35,8 +35,14 @@ const PropertyList: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showSlowNotice, setShowSlowNotice] = useState(false);
 
   useEffect(() => {
+    // Show a notice if it takes more than 5 seconds (likely a cold start)
+    const timer = setTimeout(() => {
+      if (loading) setShowSlowNotice(true);
+    }, 5000);
+
     const fetchProperties = async () => {
       try {
         const response = await propertiesAPI.getAll();
@@ -82,9 +88,23 @@ const PropertyList: React.FC = () => {
     };
 
     fetchProperties();
-  }, []);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
-  if (loading) return <div className="container" style={{ textAlign: 'center', padding: '100px' }}>Loading properties...</div>;
+  if (loading) {
+    return (
+      <div className="container" style={{ textAlign: 'center', padding: '100px' }}>
+        <div className="loading-spinner"></div>
+        <p>Loading properties...</p>
+        {showSlowNotice && (
+          <p style={{ color: '#666', fontSize: '0.85rem', marginTop: '10px' }}>
+            The server is taking a moment to wake up. This is normal for free-tier hosting.
+            Please wait a few more seconds...
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <section className="property-list-section">

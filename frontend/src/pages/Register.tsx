@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api';
 import { UserPlus, Mail, Lock, User, AlertCircle } from 'lucide-react';
@@ -10,12 +10,26 @@ const Register: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showSlowNotice, setShowSlowNotice] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let timer: number;
+    if (loading) {
+      timer = window.setTimeout(() => {
+        setShowSlowNotice(true);
+      }, 5000);
+    } else {
+      setShowSlowNotice(false);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setShowSlowNotice(false);
 
     try {
       const response = await authAPI.register(username, email, password);
@@ -100,9 +114,20 @@ const Register: React.FC = () => {
           </div>
 
           <button type="submit" className="btn-auth" disabled={loading}>
-            {loading ? 'Creating Account...' : 'Sign Up'}
+            {loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                <div className="loading-spinner" style={{ width: '20px', height: '20px', borderWeight: '3px', margin: 0 }}></div>
+                <span>Creating Account...</span>
+              </div>
+            ) : 'Sign Up'}
           </button>
         </form>
+
+        {showSlowNotice && (
+          <p style={{ textAlign: 'center', color: '#666', fontSize: '0.8rem', marginTop: '15px' }}>
+            The server is waking up. This might take a few more seconds...
+          </p>
+        )}
 
         <div className="auth-footer">
           <p>Already have an account? <a href="/login">Log in here</a></p>

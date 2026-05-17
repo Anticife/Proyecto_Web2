@@ -47,6 +47,7 @@
   padding: 0.75rem 1rem;
   border-radius: 8px;
   min-width: 200px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .search-icon {
@@ -60,7 +61,18 @@
   width: 100%;
   font-family: inherit;
   font-size: 1rem;
-  color: var(--text);
+  color: #1a1a1a; /* Explicit dark color for visibility */
+  background: white;
+}
+
+.search-input input::placeholder {
+  color: #757575;
+}
+
+.search-input input:disabled {
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
 }
 
 .btn-search {
