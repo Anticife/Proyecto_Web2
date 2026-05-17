@@ -16,18 +16,28 @@ interface Property {
 
 // Función de transformación estándar según frontend_guidelines.md
 export function transformProperty(item: any) {
+  if (!item || !item.attributes) return null;
+  
   const attrs = item.attributes;
-  const imageUrl = attrs.images?.data?.[0]?.attributes?.url;
+  // Handle Strapi images safely
+  let imageUrl = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800';
+  
+  if (attrs.images?.data && attrs.images.data.length > 0) {
+    imageUrl = attrs.images.data[0].attributes?.url || imageUrl;
+  } else if (attrs.image?.data) {
+    // Some schemas use 'image' instead of 'images'
+    imageUrl = attrs.image.data.attributes?.url || imageUrl;
+  }
+
   return {
     id: item.id,
-    title: attrs.title,
-    price: attrs.price,
+    title: attrs.title || 'Untitled Property',
+    price: attrs.price || 0,
     location: attrs.location || 'Sin ubicación',
     area: attrs.area || 0,
     isFeatured: attrs.isFeatured || false,
     category: attrs.category?.data?.attributes?.name || 'Sin categoría',
-    // Strapi returns an object for relations in v4
-    image: imageUrl || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800',
+    image: imageUrl,
   };
 }
 
@@ -46,9 +56,16 @@ const PropertyList: React.FC = () => {
     const fetchProperties = async () => {
       try {
         const response = await propertiesAPI.getAll();
+        console.log('API Response:', response);
+
+        if (!response || !response.data) {
+          throw new Error('Invalid API response structure');
+        }
         
-        // Transform Strapi data using the standard function
-        const transformedData = response.data.map(transformProperty);
+        // Transform Strapi data using the standard function, filtering out nulls
+        const transformedData = response.data
+          .map(transformProperty)
+          .filter((item: any) => item !== null);
 
         // Sort: Featured first
         const sorted = transformedData.sort((a: Property, b: Property) => 
