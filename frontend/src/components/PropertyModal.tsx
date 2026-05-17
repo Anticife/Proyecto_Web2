@@ -22,6 +22,15 @@ const PropertyModal: React.FC<PropertyModalProps> = ({ isOpen, onClose, onSucces
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
+  const fetchCategories = async () => {
+    try {
+      const response = await categoriesAPI.getAll();
+      setCategories(response.data);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchCategories();
@@ -46,15 +55,6 @@ const PropertyModal: React.FC<PropertyModalProps> = ({ isOpen, onClose, onSucces
       }
     }
   }, [isOpen, property]);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await categoriesAPI.getAll();
-      setCategories(response.data);
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

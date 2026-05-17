@@ -21,19 +21,6 @@ const Properties: React.FC = () => {
 
   const location = useLocation();
 
-  useEffect(() => {
-    fetchCategories();
-    // Parse URL params if any
-    const params = new URLSearchParams(location.search);
-    const category = params.get('category') || '';
-    const search = params.get('search') || '';
-    setFilters(prev => ({ ...prev, category, search }));
-  }, [location.search]);
-
-  useEffect(() => {
-    fetchProperties();
-  }, [currentPage, filters]);
-
   const fetchCategories = async () => {
     try {
       const response = await categoriesAPI.getAll();
@@ -46,7 +33,7 @@ const Properties: React.FC = () => {
   const fetchProperties = async () => {
     setLoading(true);
     try {
-      let queryParts = [`pagination[page]=${currentPage}`, `pagination[pageSize]=6`];
+      const queryParts = [`pagination[page]=${currentPage}`, `pagination[pageSize]=6`];
       
       if (filters.category) {
         queryParts.push(`filters[category][id][$eq]=${filters.category}`);
@@ -71,6 +58,19 @@ const Properties: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCategories();
+    // Parse URL params if any
+    const params = new URLSearchParams(location.search);
+    const category = params.get('category') || '';
+    const search = params.get('search') || '';
+    setFilters(prev => ({ ...prev, category, search }));
+  }, [location.search]);
+
+  useEffect(() => {
+    fetchProperties();
+  }, [currentPage, filters]);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

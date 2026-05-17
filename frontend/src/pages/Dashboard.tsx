@@ -29,17 +29,6 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const jwt = localStorage.getItem('jwt');
 
-  useEffect(() => {
-    if (!jwt) return;
-
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      fetchMyProperties(parsedUser.id);
-    }
-  }, [jwt]);
-
   const fetchMyProperties = async (userId: number) => {
     try {
       const response = await propertiesAPI.getMyProperties(userId);
@@ -54,6 +43,17 @@ const Dashboard: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!jwt) return;
+
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      fetchMyProperties(parsedUser.id);
+    }
+  }, [jwt]);
 
   const handleLogout = () => {
     localStorage.removeItem('jwt');

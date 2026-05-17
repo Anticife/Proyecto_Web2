@@ -26,7 +26,7 @@ export function transformProperty(item: any) {
     area: attrs.area || 0,
     isFeatured: attrs.isFeatured || false,
     category: attrs.category?.data?.attributes?.name || 'Sin categoría',
-    // ⚠️ Cloudinary devuelve URL ABSOLUTA — NO prefixar con API_URL
+    // Strapi returns an object for relations in v4
     image: imageUrl || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800',
   };
 }
