@@ -14,3 +14,5 @@ services:
         sync: false
       - key: VITE_MERCADOPAGO_PUBLIC_KEY
         sync: false
+      - key: VITE_STRAPI_TOKEN
+        sync: false

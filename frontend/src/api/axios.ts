@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
+const STRAPI_TOKEN = import.meta.env.VITE_STRAPI_TOKEN;
 
 if (import.meta.env.DEV && !import.meta.env.VITE_API_URL) {
   console.warn('VITE_API_URL is not defined, falling back to localhost:1337');
@@ -11,10 +12,11 @@ const api = axios.create({
   timeout: 30000, // 30 seconds timeout
   headers: {
     'Content-Type': 'application/json',
+    ...(STRAPI_TOKEN ? { 'Authorization': `Bearer ${STRAPI_TOKEN}` } : {})
   },
 });
 
-// Interceptor to attach the JWT token to requests if it exists
+// Interceptor to attach the JWT token to requests if it exists (Overwrites the STRAPI_TOKEN for user-specific requests)
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('jwt');
