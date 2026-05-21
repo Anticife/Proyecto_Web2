@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Building2, MapPin, DollarSign, Maximize2, Tag } from 'lucide-react';
 import { categoriesAPI, propertiesAPI } from '../api';
+import type { Property, StrapiCategory } from '../utils/propertyUtils';
 
 interface PropertyModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  property?: any; // If present, we are editing
+  property?: Property; // If present, we are editing
 }
 
 const PropertyModal: React.FC<PropertyModalProps> = ({ isOpen, onClose, onSuccess, property }) => {
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<StrapiCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -22,38 +23,50 @@ const PropertyModal: React.FC<PropertyModalProps> = ({ isOpen, onClose, onSucces
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
-  const fetchCategories = async () => {
-    try {
-      const response = await categoriesAPI.getAll();
-      setCategories(response.data);
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-    }
-  };
-
   useEffect(() => {
+    let ignore = false;
     if (isOpen) {
-      fetchCategories();
-      if (property) {
-        setFormData({
-          title: property.title || '',
-          price: property.price?.toString() || '',
-          area: property.area?.toString() || '',
-          location: property.location || '',
-          category: property.categoryId?.toString() || '',
+      const loadCategories = async () => {
+        try {
+          const response = await categoriesAPI.getAll();
+          if (!ignore) setCategories(response.data);
+        } catch (err) {
+          console.error('Error fetching categories:', err);
+        }
+      };
+      loadCategories();
+      
+      // Update form data only when property changes or modal opens
+      const initialData = property ? {
+        title: property.title || '',
+        price: property.price?.toString() || '',
+        area: property.area?.toString() || '',
+        location: property.location || '',
+        category: property.categoryId?.toString() || '',
+      } : {
+        title: '',
+        price: '',
+        area: '',
+        location: '',
+        category: '',
+      };
+      
+      // Use setTimeout to avoid synchronous setState warning
+      setTimeout(() => {
+        setFormData(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(initialData)) return prev;
+          return initialData;
         });
-      } else {
-        setFormData({
-          title: '',
-          price: '',
-          area: '',
-          location: '',
-          category: '',
-        });
-        setFiles([]);
-        setPreviews([]);
+      }, 0);
+
+      if (!property) {
+        setTimeout(() => {
+          setFiles([]);
+          setPreviews([]);
+        }, 0);
       }
     }
+    return () => { ignore = true; };
   }, [isOpen, property]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -81,11 +94,11 @@ const PropertyModal: React.FC<PropertyModalProps> = ({ isOpen, onClose, onSucces
       // 1. Upload images if there are new ones
       if (files.length > 0) {
         const uploadResponse = await propertiesAPI.uploadImages(files);
-        imageIds = uploadResponse.map((img: any) => img.id);
+        imageIds = uploadResponse.map((img: { id: number }) => img.id);
       }
 
       // 2. Prepare payload
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         title: formData.title,
         price: parseFloat(formData.price),
         area: formData.area ? parseFloat(formData.area) : null,

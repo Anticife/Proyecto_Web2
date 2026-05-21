@@ -3,25 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { propertiesAPI, paymentsAPI } from '../api';
 import PropertyCard from '../components/PropertyCard';
 import PropertyModal from '../components/PropertyModal';
-import { transformProperty } from '../components/PropertyList';
+import { transformProperty } from '../utils/propertyUtils';
+import type { Property } from '../utils/propertyUtils';
 import { Plus, LayoutDashboard, LogOut, CheckCircle } from 'lucide-react';
 
-interface Property {
+interface User {
   id: number;
-  title: string;
-  price: number;
-  location: string;
-  area: number;
-  isFeatured: boolean;
-  image: string;
-  category: string;
-  categoryId?: number;
+  username: string;
+  email: string;
 }
 
 const Dashboard: React.FC = () => {
+  const [user] = useState<User | null>(() => {
+    const userData = localStorage.getItem('user');
+    return userData ? JSON.parse(userData) : null;
+  });
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<Property | undefined>(undefined);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -29,31 +27,34 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const jwt = localStorage.getItem('jwt');
 
-  const fetchMyProperties = async (userId: number) => {
-    try {
-      const response = await propertiesAPI.getMyProperties(userId);
-      const transformedData = response.data.map((item: any) => ({
-        ...transformProperty(item),
-        categoryId: item.attributes.category?.data?.id
-      }));
-      setProperties(transformedData);
-    } catch (err) {
-      console.error('Error fetching my properties:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (!jwt) return;
-
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      fetchMyProperties(parsedUser.id);
+    if (!jwt) {
+      navigate('/login');
+      return;
     }
-  }, [jwt]);
+
+    let ignore = false;
+    const fetchMyProperties = async (userId: number) => {
+      try {
+        const response = await propertiesAPI.getMyProperties(userId);
+        const transformedData = response.data
+          .map(transformProperty)
+          .filter((item: Property | null): item is Property => item !== null);
+        
+        if (!ignore) setProperties(transformedData);
+      } catch (err) {
+        console.error('Error fetching my properties:', err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchMyProperties(user.id);
+    }
+
+    return () => { ignore = true; };
+  }, [jwt, user, navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('jwt');
@@ -83,7 +84,20 @@ const Dashboard: React.FC = () => {
   };
 
   const handleModalSuccess = () => {
-    if (user) fetchMyProperties(user.id);
+    if (user) {
+      const fetchMyProperties = async (userId: number) => {
+        try {
+          const response = await propertiesAPI.getMyProperties(userId);
+          const transformedData = response.data
+            .map(transformProperty)
+            .filter((item: Property | null): item is Property => item !== null);
+          setProperties(transformedData);
+        } catch (err) {
+          console.error('Error fetching my properties:', err);
+        }
+      };
+      fetchMyProperties(user.id);
+    }
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
   };

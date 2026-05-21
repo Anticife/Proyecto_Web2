@@ -1,45 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { propertiesAPI } from '../api';
 import PropertyCard from './PropertyCard';
+import { transformProperty } from '../utils/propertyUtils';
+import type { Property } from '../utils/propertyUtils';
 import './PropertyList.css';
-
-interface Property {
-  id: number;
-  title: string;
-  price: number;
-  location: string;
-  area: number;
-  isFeatured: boolean;
-  image: string;
-  category: string;
-}
-
-// Función de transformación estándar según frontend_guidelines.md
-export function transformProperty(item: any) {
-  if (!item || !item.attributes) return null;
-  
-  const attrs = item.attributes;
-  // Handle Strapi images safely
-  let imageUrl = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800';
-  
-  if (attrs.images?.data && attrs.images.data.length > 0) {
-    imageUrl = attrs.images.data[0].attributes?.url || imageUrl;
-  } else if (attrs.image?.data) {
-    // Some schemas use 'image' instead of 'images'
-    imageUrl = attrs.image.data.attributes?.url || imageUrl;
-  }
-
-  return {
-    id: item.id,
-    title: attrs.title || 'Untitled Property',
-    price: attrs.price || 0,
-    location: attrs.location || 'Sin ubicación',
-    area: attrs.area || 0,
-    isFeatured: attrs.isFeatured || false,
-    category: attrs.category?.data?.attributes?.name || 'Sin categoría',
-    image: imageUrl,
-  };
-}
 
 const PropertyList: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -65,7 +29,7 @@ const PropertyList: React.FC = () => {
         // Transform Strapi data using the standard function, filtering out nulls
         const transformedData = response.data
           .map(transformProperty)
-          .filter((item: any) => item !== null);
+          .filter((item: Property | null): item is Property => item !== null);
 
         // Sort: Featured first
         const sorted = transformedData.sort((a: Property, b: Property) => 

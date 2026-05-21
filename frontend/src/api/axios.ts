@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
 const STRAPI_TOKEN = import.meta.env.VITE_STRAPI_TOKEN;
 
 if (import.meta.env.DEV) {

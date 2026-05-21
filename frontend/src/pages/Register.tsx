@@ -14,14 +14,15 @@ const Register: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    let timer: number;
-    if (loading) {
-      timer = window.setTimeout(() => {
-        setShowSlowNotice(true);
-      }, 5000);
-    } else {
-      setShowSlowNotice(false);
+    if (!loading) {
+      setTimeout(() => setShowSlowNotice(false), 0);
+      return;
     }
+
+    const timer = window.setTimeout(() => {
+      setShowSlowNotice(true);
+    }, 5000);
+    
     return () => clearTimeout(timer);
   }, [loading]);
 
@@ -29,7 +30,6 @@ const Register: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setShowSlowNotice(false);
 
     try {
       const response = await authAPI.register(username, email, password);
@@ -41,9 +41,10 @@ const Register: React.FC = () => {
       // Redirect to dashboard
       navigate('/dashboard');
       window.location.reload();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Registration error:', err);
-      setError(err.response?.data?.error?.message || 'Failed to create account. Please try again.');
+      const errorMsg = (err as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message || 'Failed to create account. Please try again.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

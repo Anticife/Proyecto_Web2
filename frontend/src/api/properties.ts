@@ -18,12 +18,12 @@ export const propertiesAPI = {
     return response.data;
   },
 
-  create: async (data: any) => {
+  create: async (data: Record<string, unknown>) => {
     const response = await api.post('/properties', { data });
     return response.data;
   },
 
-  update: async (id: number | string, data: any) => {
+  update: async (id: number | string, data: Record<string, unknown>) => {
     const response = await api.put(`/properties/${id}`, { data });
     return response.data;
   },

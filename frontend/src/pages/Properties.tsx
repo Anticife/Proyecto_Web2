@@ -1,36 +1,64 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { propertiesAPI, categoriesAPI } from '../api';
 import PropertyCard from '../components/PropertyCard';
-import { transformProperty } from '../components/PropertyList';
+import { transformProperty } from '../utils/propertyUtils';
+import type { Property, StrapiCategory, StrapiProperty } from '../utils/propertyUtils';
 import { Filter, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 
+interface Pagination {
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  total: number;
+}
+
 const Properties: React.FC = () => {
-  const [properties, setProperties] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [categories, setCategories] = useState<StrapiCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState<any>(null);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   
-  const [filters, setFilters] = useState({
-    category: '',
-    minPrice: '',
-    maxPrice: '',
-    search: ''
-  });
-
   const location = useLocation();
 
-  const fetchCategories = async () => {
-    try {
-      const response = await categoriesAPI.getAll();
-      setCategories(response.data);
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-    }
-  };
+  const [filters, setFilters] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      category: params.get('category') || '',
+      minPrice: '',
+      maxPrice: '',
+      search: params.get('search') || ''
+    };
+  });
 
-  const fetchProperties = async () => {
+  useEffect(() => {
+    let ignore = false;
+    async function fetchCategories() {
+      try {
+        const response = await categoriesAPI.getAll();
+        if (!ignore) setCategories(response.data);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    }
+    fetchCategories();
+
+    // Sync filters with URL when location changes (e.g. back button)
+    const params = new URLSearchParams(location.search);
+    const category = params.get('category') || '';
+    const search = params.get('search') || '';
+    
+    if (filters.category !== category || filters.search !== search) {
+      setTimeout(() => {
+        setFilters(prev => ({ ...prev, category, search }));
+      }, 0);
+    }
+
+    return () => { ignore = true; };
+  }, [location.search, filters.category, filters.search]);
+
+  const fetchProperties = useCallback(async (ignore: boolean) => {
     setLoading(true);
     try {
       const queryParts = [`pagination[page]=${currentPage}`, `pagination[pageSize]=6`];
@@ -49,28 +77,28 @@ const Properties: React.FC = () => {
       }
 
       const response = await propertiesAPI.getAll(queryParts.join('&'));
-      const transformedData = response.data.map(transformProperty);
-      setProperties(transformedData);
-      setPagination(response.meta.pagination);
+      const transformedData = response.data
+        .map((item: StrapiProperty) => transformProperty(item))
+        .filter((item: Property | null): item is Property => item !== null);
+      
+      if (!ignore) {
+        setProperties(transformedData);
+        setPagination(response.meta.pagination);
+      }
     } catch (err) {
       console.error('Error fetching properties:', err);
     } finally {
-      setLoading(false);
+      if (!ignore) setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchCategories();
-    // Parse URL params if any
-    const params = new URLSearchParams(location.search);
-    const category = params.get('category') || '';
-    const search = params.get('search') || '';
-    setFilters(prev => ({ ...prev, category, search }));
-  }, [location.search]);
-
-  useEffect(() => {
-    fetchProperties();
   }, [currentPage, filters]);
+
+  useEffect(() => {
+    let ignore = false;
+    setTimeout(() => {
+      fetchProperties(ignore);
+    }, 0);
+    return () => { ignore = true; };
+  }, [fetchProperties]);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

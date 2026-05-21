@@ -13,14 +13,15 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    let timer: number;
-    if (loading) {
-      timer = window.setTimeout(() => {
-        setShowSlowNotice(true);
-      }, 5000);
-    } else {
-      setShowSlowNotice(false);
+    if (!loading) {
+      setTimeout(() => setShowSlowNotice(false), 0);
+      return;
     }
+
+    const timer = window.setTimeout(() => {
+      setShowSlowNotice(true);
+    }, 5000);
+    
     return () => clearTimeout(timer);
   }, [loading]);
 
@@ -28,7 +29,6 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setShowSlowNotice(false);
 
     try {
       const response = await authAPI.login(identifier, password);
@@ -40,9 +40,10 @@ const Login: React.FC = () => {
       // Redirect to dashboard
       navigate('/dashboard');
       window.location.reload(); // Simple way to refresh navbar state
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
-      setError(err.response?.data?.error?.message || 'Invalid credentials. Please try again.');
+      const errorMsg = (err as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message || 'Invalid credentials. Please try again.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
