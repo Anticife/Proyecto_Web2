@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { propertiesAPI } from '../api';
 import PropertyCard from './PropertyCard';
 import { transformProperty } from '../utils/propertyUtils';
@@ -10,9 +11,11 @@ const PropertyList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSlowNotice, setShowSlowNotice] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Show a notice if it takes more than 5 seconds (likely a cold start)
+    // ... rest of code stays the same
+
     const timer = setTimeout(() => {
       if (loading) setShowSlowNotice(true);
     }, 5000);
@@ -50,7 +53,8 @@ const PropertyList: React.FC = () => {
             area: 450,
             isFeatured: true,
             category: 'Villa',
-            image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&q=80&w=800'
+            image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&q=80&w=800',
+            images: ['https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&q=80&w=800']
           },
           {
             id: 2,
@@ -60,7 +64,8 @@ const PropertyList: React.FC = () => {
             area: 180,
             isFeatured: true,
             category: 'Penthouse',
-            image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800'
+            image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800',
+            images: ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800']
           }
         ]);
       } finally {
@@ -103,7 +108,9 @@ const PropertyList: React.FC = () => {
         </div>
         
         <div className="view-more">
-          <button className="btn-secondary">View All Properties</button>
+          <button className="btn-secondary" onClick={() => navigate('/properties')}>
+            View All Properties
+          </button>
         </div>
       </div>
     </section>

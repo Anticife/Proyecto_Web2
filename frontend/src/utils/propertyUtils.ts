@@ -48,6 +48,7 @@ export interface Property {
   area: number;
   isFeatured: boolean;
   image: string;
+  images: string[];
   category: string;
   categoryId?: number;
 }
@@ -58,16 +59,25 @@ export function transformProperty(item: StrapiProperty): Property | null {
   const attrs = item.attributes;
   
   // Handle Strapi images safely
-  let imageUrl = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800';
+  const defaultImage = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800';
+  let imageUrl = defaultImage;
+  let allImages: string[] = [];
   
-  const imageData = (attrs.images?.data && attrs.images.data.length > 0) 
-    ? attrs.images.data[0] 
-    : attrs.image?.data;
-
-  if (imageData?.attributes?.url) {
-    const rawUrl = imageData.attributes.url;
-    // If URL is relative (starts with /), prepend API_URL
-    imageUrl = rawUrl.startsWith('/') ? `${API_URL}${rawUrl}` : rawUrl;
+  // Extract all images
+  const imagesData = attrs.images?.data || [];
+  if (imagesData.length > 0) {
+    allImages = imagesData.map(img => {
+      const url = img.attributes?.url;
+      if (!url) return defaultImage;
+      return url.startsWith('/') ? `${API_URL}${url}` : url;
+    });
+    imageUrl = allImages[0];
+  } else if (attrs.image?.data?.attributes?.url) {
+    const url = attrs.image.data.attributes.url;
+    imageUrl = url.startsWith('/') ? `${API_URL}${url}` : url;
+    allImages = [imageUrl];
+  } else {
+    allImages = [defaultImage];
   }
 
   return {
@@ -80,5 +90,6 @@ export function transformProperty(item: StrapiProperty): Property | null {
     category: attrs.category?.data?.attributes?.name || 'Sin categoría',
     categoryId: attrs.category?.data?.id,
     image: imageUrl,
+    images: allImages,
   };
 }
